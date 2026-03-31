@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
 export default function Subscribe() {
   const { user, isSubscribed } = useAuth()
@@ -14,11 +11,16 @@ export default function Subscribe() {
     if (!user) { window.location.href = '/signup'; return }
     setLoading(true)
     try {
-      const stripe = await stripePromise
-      const response = await fetch('/api/create-checkout-session', {
+      const { loadStripe } = await import('@stripe/stripe-js')
+      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '')
+      const response = await fetch('/.netlify/functions/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, email: user.email, priceId: import.meta.env.VITE_STRIPE_PRICE_ID })
+        body: JSON.stringify({
+          userId: user.id,
+          email: user.email,
+          priceId: import.meta.env.VITE_STRIPE_PRICE_ID
+        })
       })
       const { sessionId, error } = await response.json()
       if (error) throw new Error(error)
